@@ -1,0 +1,28 @@
+# Streamlined Trading Agent Requirements
+# Core dependencies only
+
+# Essential data processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Machine Learning (optional but recommended)
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# Technical analysis (optional)
+pandas-ta
+
+# Market data (optional)
+yfinance
+
+# Digital Brain dependencies (if available)
+# Uncomment if you have these installed:
+# langchain>=0.1.0
+# langchain-community>=0.0.20
+# faiss-cpu>=1.7.4
+# tiktoken>=0.5.0
+
+# For enhanced features (optional)
+# matplotlib
+# websocket-client
+# requests

@@ -1,0 +1,36 @@
+{
+  "td_ameritrade": {
+    "api_key": "YOUR_TD_AMERITRADE_API_KEY",
+    "client_id": "YOUR_CLIENT_ID",
+    "redirect_uri": "https://localhost:8080",
+    "account_id": "YOUR_PAPER_TRADING_ACCOUNT_ID",
+    "paper_trading": true,
+    "api_endpoints": {
+      "base_url": "https://api.tdameritrade.com/v1",
+      "auth_url": "https://auth.tdameritrade.com/auth",
+      "token_url": "https://api.tdameritrade.com/v1/oauth2/token"
+    },
+    "rate_limits": {
+      "requests_per_minute": 120,
+      "burst_limit": 20
+    },
+    "trading_settings": {
+      "max_position_size": 10000,
+      "max_daily_trades": 50,
+      "stop_loss_required": true,
+      "take_profit_required": false
+    }
+  },
+  "monitoring": {
+    "performance_alerts": true,
+    "error_notifications": true,
+    "daily_reports": true,
+    "real_time_dashboard": true
+  },
+  "risk_management": {
+    "max_portfolio_risk": 0.02,
+    "max_position_risk": 0.01,
+    "stop_loss_buffer": 0.02,
+    "correlation_limits": 0.7
+  }
+}

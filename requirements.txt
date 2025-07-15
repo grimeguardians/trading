@@ -1,0 +1,41 @@
+# Core dependencies for multi-agent trading system
+dataclasses-json==0.5.14
+numpy==1.24.3
+pandas==2.0.3
+
+# Technical analysis and ML
+pandas-ta
+scikit-learn
+scipy
+yfinance
+
+# Web interface for chat
+flask==2.3.3
+flask-socketio==5.3.6
+
+# HTTP requests for broker APIs
+requests==2.31.0
+
+# LangChain for enhanced document processing and structured outputs
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-openai>=0.0.5
+pypdf>=3.17.4
+pydantic>=2.5.3
+faiss-cpu>=1.7.4
+tiktoken>=0.5.0
+
+# For future broker integrations
+# ccxt==4.1.0  # For additional exchange connectivity
+# ta-lib==0.4.28  # For advanced technical analysis
+# websocket-client==1.6.4  # For real-time data feeds
+# AI and Machine Learning
+scikit-learn>=1.3.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# LangChain Enhanced Components
+matplotlib
+opencv-python
+websocket
+websocket-client

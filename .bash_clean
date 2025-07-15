@@ -1,0 +1,21 @@
+
+#!/bin/bash
+# Minimal shell - no completion errors
+export PS1='$ '
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Disable problematic bash features
+set +H
+unset HISTFILE
+unset BASH_COMPLETION_COMPAT_DIR  
+unset BASH_COMPLETION_DIR
+
+# Override problematic functions to prevent errors
+shopt() { true; }
+complete() { true; }
+
+# Basic aliases
+alias ll='ls -la'
+alias clear='clear'
+
+echo "Clean shell ready"
