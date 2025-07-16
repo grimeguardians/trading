@@ -82,7 +82,7 @@ class AutonomousTradingChatBot:
     def _extract_symbols(self, message: str) -> List[str]:
         """Extract trading symbols from message with altcoin season support"""
         # Enhanced crypto symbols
-        crypto_symbols = ['BTC', 'ETH', 'XRP', 'HBAR', 'XLM', 'CRO', 'LINK', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'ATOM', 'ALGO']
+        crypto_symbols = ['BTC', 'ETH', 'XRP', 'HBAR', 'XLM', 'CRO', 'LINK', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'ATOM', 'ALGO', 'SUI']
         stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'SPY', 'QQQ', 'NFLX', 'CRM', 'PLTR']
         
         found_symbols = []
@@ -579,10 +579,10 @@ class AutonomousTradingChatBot:
                     🤖 <strong>Autonomous Trading:</strong> "Start autonomous trading", "Stop trading"<br>
                     📈 <strong>Market Analysis:</strong> "Risk report", "Monitor NVDA"<br><br>
                     
-                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC/USD, ETH/USD, XRP/BTC, HBAR/ETH, etc.), Options, Futures<br>
+                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC/USD, ETH/USD, XRP/BTC, HBAR/ETH, SUI/BTC, etc.), Options, Futures<br>
                     <strong>Altcoin Season Ready:</strong> Smart pairing with BTC/ETH for maximum altcoin potential<br><br>
                     
-                    Try: <em>"Buy XRP/BTC"</em>, <em>"Buy HBAR against ETH"</em>, or <em>"What trade ideas do you have?"</em>
+                    Try: <em>"Buy XRP/BTC"</em>, <em>"Buy HBAR against ETH"</em>, <em>"Buy SUI/BTC"</em>, or <em>"What trade ideas do you have?"</em>
                 </div>
                 <div class="message-time">Ready for autonomous trading</div>
             </div>
@@ -594,6 +594,7 @@ class AutonomousTradingChatBot:
             <button class="quick-btn" onclick="sendQuickMessage('Buy 10 shares of AAPL')">🚀 Buy AAPL</button>
             <button class="quick-btn" onclick="sendQuickMessage('Buy XRP/BTC')">🔶 Buy XRP/BTC</button>
             <button class="quick-btn" onclick="sendQuickMessage('Buy HBAR against ETH')">🌿 Buy HBAR/ETH</button>
+            <button class="quick-btn" onclick="sendQuickMessage('Buy SUI/BTC')">🔵 Buy SUI/BTC</button>
             <button class="quick-btn" onclick="sendQuickMessage('Start autonomous trading')">🤖 Start Auto</button>
             <button class="quick-btn" onclick="sendQuickMessage('Show my positions')">📋 Positions</button>
             <button class="quick-btn" onclick="sendQuickMessage('Risk report')">⚠️ Risk Report</button>
