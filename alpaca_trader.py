@@ -11,8 +11,9 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify
 import json
 
-# Load configuration
+# Load configuration and strategy engine
 from config import config
+from intelligent_strategy_engine import strategy_engine, TradingSignal
 
 # Alpaca SDK
 try:
@@ -140,24 +141,150 @@ class AlpacaTrader:
             print(f"❌ Order failed: {e}")
             return False
     
-    def simple_trading_logic(self):
-        """Conservative trading logic - manual trades only"""
-        print("🎯 Background trading disabled - manual trades only")
-        print("💡 Use dashboard buttons for trading control")
+    def intelligent_trading_logic(self):
+        """Literature-driven intelligent trading with Digital Brain"""
+        print("🧠 Intelligent Trading Engine Active")
+        print("📚 Using strategies from uploaded trading literature")
+        print("⚡ Dynamic stop-loss management enabled")
         
         while self.running:
             try:
-                # Just monitor - no automatic trades
-                time.sleep(60)  # Check every minute
-                
-                # Optional: Log portfolio status
+                # Get portfolio status
                 portfolio = self.get_portfolio_status()
-                if portfolio:
-                    print(f"📊 Portfolio: ${portfolio['portfolio_value']:,.2f} | Cash: ${portfolio['cash']:,.2f}")
+                if not portfolio:
+                    time.sleep(30)
+                    continue
+                
+                print(f"📊 Portfolio: ${portfolio['portfolio_value']:,.2f} | Cash: ${portfolio['cash']:,.2f}")
+                
+                # Check all enabled symbols for trading opportunities
+                for asset_class in self.enabled_assets:
+                    if asset_class in self.symbols:
+                        for symbol in self.symbols[asset_class][:3]:  # Limit to 3 per class
+                            
+                            # Get market data
+                            quote = self.get_quote(symbol)
+                            if not quote:
+                                continue
+                                
+                            # Prepare market data for analysis
+                            market_data = {
+                                'price': quote['price'],
+                                'bid': quote['bid'],
+                                'ask': quote['ask'],
+                                'volume': 1000,  # Placeholder
+                                'ma_20': quote['price'] * 0.98,  # Simple approximation
+                                'ma_50': quote['price'] * 0.96,
+                                'recent_high': quote['price'] * 1.05,
+                                'recent_low': quote['price'] * 0.95,
+                                'support': quote['price'] * 0.97,
+                                'resistance': quote['price'] * 1.03,
+                                'atr': quote['price'] * 0.02  # 2% ATR estimate
+                            }
+                            
+                            # Get intelligent signal from strategy engine
+                            signal = strategy_engine.analyze_market_conditions(symbol, market_data)
+                            
+                            # Execute trades based on signal
+                            if signal.confidence > 0.6:  # High confidence signals only
+                                self._execute_intelligent_trade(signal, portfolio, market_data)
+                            
+                            # Manage existing positions
+                            self._manage_existing_positions(symbol, market_data, portfolio)
+                
+                time.sleep(config.portfolio_check_interval)  # Configurable interval
                 
             except Exception as e:
-                print(f"Monitoring error: {e}")
-                time.sleep(10)
+                print(f"🚨 Trading engine error: {e}")
+                time.sleep(30)
+    
+    def _execute_intelligent_trade(self, signal: TradingSignal, portfolio: Dict, market_data: Dict):
+        """Execute trade based on intelligent signal"""
+        symbol = signal.symbol
+        
+        # Check if we already have a position
+        has_position = any(pos['symbol'] == symbol for pos in portfolio['positions'])
+        
+        if signal.action == 'BUY' and not has_position and portfolio['cash'] > 1000:
+            
+            entry_price = market_data['price']
+            
+            # Calculate intelligent stop loss using literature
+            stop_loss = strategy_engine.calculate_dynamic_stop_loss(
+                symbol, entry_price, 'BUY', market_data
+            )
+            
+            # Calculate position size using risk management
+            position_size = strategy_engine.get_position_size(
+                symbol, entry_price, stop_loss, portfolio['portfolio_value']
+            )
+            
+            if position_size > 0 and position_size * entry_price <= portfolio['cash']:
+                print(f"🚀 INTELLIGENT BUY: {symbol}")
+                print(f"📊 Confidence: {signal.confidence:.1%}")
+                print(f"🧠 Strategy: {signal.strategy}")
+                print(f"💭 Reasoning: {signal.reasoning[0]}")
+                print(f"🛡️ Stop Loss: ${stop_loss:.2f}")
+                
+                success = self.place_order(symbol, 'BUY', position_size)
+                
+                if success:
+                    # Track position for stop loss management
+                    strategy_engine.position_tracking[symbol] = {
+                        'entry_price': entry_price,
+                        'stop_loss': stop_loss,
+                        'direction': 'BUY',
+                        'entry_time': datetime.now(),
+                        'strategy': signal.strategy,
+                        'literature_source': signal.literature_source
+                    }
+        
+        elif signal.action == 'SELL' and has_position:
+            # Get position details
+            position = next(pos for pos in portfolio['positions'] if pos['symbol'] == symbol)
+            if position['quantity'] > 0:
+                print(f"📉 INTELLIGENT SELL: {symbol}")
+                print(f"📊 Confidence: {signal.confidence:.1%}")
+                print(f"🧠 Strategy: {signal.strategy}")
+                print(f"💭 Reasoning: {signal.reasoning[0]}")
+                
+                self.place_order(symbol, 'SELL', position['quantity'])
+                
+                # Remove from tracking
+                if symbol in strategy_engine.position_tracking:
+                    del strategy_engine.position_tracking[symbol]
+    
+    def _manage_existing_positions(self, symbol: str, market_data: Dict, portfolio: Dict):
+        """Manage existing positions with intelligent stop loss"""
+        
+        if symbol not in strategy_engine.position_tracking:
+            return
+            
+        position_info = strategy_engine.position_tracking[symbol]
+        current_price = market_data['price']
+        
+        # Check if we should move the stop loss
+        should_move, new_stop = strategy_engine.should_move_stop_loss(
+            symbol, 
+            position_info['entry_price'],
+            current_price,
+            position_info['stop_loss'],
+            position_info['direction']
+        )
+        
+        if should_move:
+            print(f"📈 MOVING STOP: {symbol} from ${position_info['stop_loss']:.2f} to ${new_stop:.2f}")
+            position_info['stop_loss'] = new_stop
+        
+        # Check if stop loss is hit
+        if position_info['direction'] == 'BUY' and current_price <= position_info['stop_loss']:
+            print(f"🛑 STOP LOSS HIT: {symbol} at ${current_price:.2f}")
+            
+            # Find position and sell
+            position = next((pos for pos in portfolio['positions'] if pos['symbol'] == symbol), None)
+            if position and position['quantity'] > 0:
+                self.place_order(symbol, 'SELL', position['quantity'])
+                del strategy_engine.position_tracking[symbol]
 
 # Flask Web Dashboard
 app = Flask(__name__)
@@ -207,6 +334,21 @@ def api_sell(symbol, quantity):
         return jsonify({'success': success})
     return jsonify({'success': False})
 
+@app.route('/api/strategy-status')
+def api_strategy_status():
+    """API endpoint for intelligent strategy status"""
+    if trader and strategy_engine:
+        status = {
+            'engine_active': trader.running,
+            'literature_sources': len(strategy_engine.active_strategies),
+            'active_positions': len(strategy_engine.position_tracking),
+            'brain_available': strategy_engine.brain is not None,
+            'strategies': list(strategy_engine.active_strategies.keys()),
+            'recent_signals': []  # Could add recent signal history
+        }
+        return jsonify(status)
+    return jsonify({'error': 'Strategy engine not available'})
+
 def create_dashboard_template():
     """Create the HTML dashboard template"""
     html_content = '''<!DOCTYPE html>
@@ -245,8 +387,13 @@ def create_dashboard_template():
 <body>
     <div class="container">
         <div class="header">
-            <h1>🦙 Alpaca Paper Trading Dashboard</h1>
-            <p>Live portfolio tracking and trading</p>
+            <h1>🧠 Intelligent Trading Dashboard</h1>
+            <p>Literature-driven strategies with dynamic stop management</p>
+            <div style="margin-top: 10px; font-size: 14px;">
+                📚 Active Strategies: <span id="strategy-count">Loading...</span> | 
+                🎯 Digital Brain: <span id="brain-status">Loading...</span> |
+                📊 Tracked Positions: <span id="tracked-positions">0</span>
+            </div>
         </div>
         
         <div id="status" class="card">
@@ -329,6 +476,18 @@ def create_dashboard_template():
 
     <script>
         function updateDashboard() {
+            // Update strategy status
+            fetch('/api/strategy-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.error) {
+                        document.getElementById('strategy-count').textContent = data.literature_sources;
+                        document.getElementById('brain-status').textContent = data.brain_available ? 'Active' : 'Offline';
+                        document.getElementById('tracked-positions').textContent = data.active_positions;
+                    }
+                })
+                .catch(error => console.log('Strategy status update failed'));
+            
             // Update portfolio
             fetch('/api/portfolio')
                 .then(response => response.json())
@@ -464,9 +623,9 @@ def main():
     # Initialize trader
     trader = AlpacaTrader()
     
-    # Start simple trading logic in background
+    # Start intelligent trading logic in background
     trader.running = True
-    trading_thread = threading.Thread(target=trader.simple_trading_logic)
+    trading_thread = threading.Thread(target=trader.intelligent_trading_logic)
     trading_thread.daemon = True
     trading_thread.start()
     
