@@ -54,12 +54,17 @@ class TradingConfig:
             self.enabled_assets = ['stocks', 'etfs', 'crypto']
             
         if self.symbols is None:
+            # Comprehensive trading symbols by asset class
             self.symbols = {
-                'stocks': ['AAPL', 'GOOGL', 'TSLA', 'MSFT', 'NVDA', 'AMZN', 'META'],
-                'etfs': ['SPY', 'QQQ', 'VTI', 'ARKK', 'GLD', 'TLT', 'XLF'],
-                'crypto': ['BTCUSD', 'ETHUSD', 'ADAUSD', 'DOTUSD', 'LTCUSD'],
-                'futures': ['ES', 'NQ', 'YM', 'RTY', 'CL', 'GC', 'SI'],
-                'options': []  # Populated dynamically
+                'stocks': ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'NFLX', 'CRM', 'PLTR'],
+                'etfs': ['SPY', 'QQQ', 'VTI', 'ARKK', 'GLD', 'TLT', 'XLF', 'SOXL', 'TQQQ', 'SPXL'],
+                'crypto': [
+                    'BTCUSD', 'ETHUSD', 'XRPUSD', 'HBARUSD', 'XLMUSD', 
+                    'CROUSD', 'LINKUSD', 'SOLUSD', 'ADAUSD', 'DOTUSD',
+                    'MATICUSD', 'AVAXUSD', 'ATOMUSD', 'ALGOUSD'
+                ],
+                'futures': ['ES', 'NQ', 'GC', 'CL', 'ZB', 'ZN', 'EUR', 'GBP'],
+                'options': ['SPY_CALL', 'QQQ_CALL', 'AAPL_CALL', 'TSLA_CALL', 'SPY_PUT', 'QQQ_PUT']
             }
     
     @property

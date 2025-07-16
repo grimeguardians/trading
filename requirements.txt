@@ -2,6 +2,10 @@
 dataclasses-json==0.5.14
 numpy==1.24.3
 pandas==2.0.3
+python-dotenv
+
+# Alpaca trading integration
+alpaca-py
 
 # Technical analysis and ML
 pandas-ta

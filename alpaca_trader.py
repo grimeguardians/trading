@@ -186,7 +186,7 @@ class AlpacaTrader:
                             signal = strategy_engine.analyze_market_conditions(symbol, market_data)
                             
                             # Execute trades based on signal
-                            if signal.confidence > 0.6:  # High confidence signals only
+                            if signal.confidence > 0.35:  # Optimized threshold for active trading
                                 self._execute_intelligent_trade(signal, portfolio, market_data)
                             
                             # Manage existing positions
