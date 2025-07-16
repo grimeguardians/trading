@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Minimal Alpaca Paper Trading - Get Trading ASAP
-Visual dashboard with real positions and trades
+Enhanced Multi-Asset Alpaca Trading System
+Visual dashboard with stocks, ETFs, crypto, and futures
 """
 
 import os
@@ -11,9 +11,8 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify
 import json
 
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
+# Load configuration
+from config import config
 
 # Alpaca SDK
 try:
@@ -36,9 +35,9 @@ except ImportError:
 
 class AlpacaTrader:
     def __init__(self):
-        # Get credentials
-        self.api_key = os.getenv('ALPACA_API_KEY')
-        self.secret_key = os.getenv('ALPACA_SECRET_KEY')
+        # Get credentials from config
+        self.api_key = config.alpaca_api_key
+        self.secret_key = config.alpaca_secret_key
         
         if not self.api_key or not self.secret_key:
             print("❌ Alpaca credentials not found!")
@@ -69,8 +68,9 @@ class AlpacaTrader:
             print(f"❌ Connection failed: {e}")
             exit(1)
         
-        # Trading state
-        self.symbols = ['AAPL', 'GOOGL', 'TSLA', 'MSFT', 'NVDA']
+        # Load symbols from config
+        self.symbols = config.symbols
+        self.enabled_assets = config.enabled_assets
         self.running = False
         
     def get_portfolio_status(self):
@@ -141,36 +141,22 @@ class AlpacaTrader:
             return False
     
     def simple_trading_logic(self):
-        """Simple trading logic for demo"""
-        import random
+        """Conservative trading logic - manual trades only"""
+        print("🎯 Background trading disabled - manual trades only")
+        print("💡 Use dashboard buttons for trading control")
         
         while self.running:
             try:
-                for symbol in self.symbols:
-                    quote = self.get_quote(symbol)
-                    
-                    if quote and random.random() < 0.1:  # 10% chance to trade
-                        portfolio = self.get_portfolio_status()
-                        
-                        if portfolio:
-                            # Simple logic: buy if we have cash, sell if we have position
-                            has_position = any(pos['symbol'] == symbol for pos in portfolio['positions'])
-                            
-                            if not has_position and portfolio['cash'] > quote['price'] * 10:
-                                # Buy 10 shares if we have cash and no position
-                                if random.random() > 0.5:  # 50% chance
-                                    self.place_order(symbol, 'BUY', 10)
-                            
-                            elif has_position and random.random() > 0.7:  # 30% chance to sell
-                                # Sell position
-                                pos = next(pos for pos in portfolio['positions'] if pos['symbol'] == symbol)
-                                if pos['quantity'] > 0:
-                                    self.place_order(symbol, 'SELL', pos['quantity'])
+                # Just monitor - no automatic trades
+                time.sleep(60)  # Check every minute
                 
-                time.sleep(30)  # Wait 30 seconds between trades
+                # Optional: Log portfolio status
+                portfolio = self.get_portfolio_status()
+                if portfolio:
+                    print(f"📊 Portfolio: ${portfolio['portfolio_value']:,.2f} | Cash: ${portfolio['cash']:,.2f}")
                 
             except Exception as e:
-                print(f"Trading error: {e}")
+                print(f"Monitoring error: {e}")
                 time.sleep(10)
 
 # Flask Web Dashboard
@@ -193,13 +179,15 @@ def api_portfolio():
 
 @app.route('/api/quotes')
 def api_quotes():
-    """API endpoint for current quotes"""
+    """API endpoint for current quotes - all asset classes"""
     if trader:
         quotes = {}
-        for symbol in trader.symbols:
-            quote = trader.get_quote(symbol)
-            if quote:
-                quotes[symbol] = quote
+        for asset_class, symbols in trader.symbols.items():
+            quotes[asset_class] = {}
+            for symbol in symbols:
+                quote = trader.get_quote(symbol)
+                if quote:
+                    quotes[asset_class][symbol] = quote
         return jsonify(quotes)
     return jsonify({})
 
@@ -247,6 +235,11 @@ def create_dashboard_template():
         .btn-sell { background: #e74c3c; color: white; }
         .btn:hover { opacity: 0.8; }
         #status { padding: 10px; background: #d4edda; border-radius: 4px; margin-bottom: 20px; }
+        .asset-tabs { margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; margin-right: 10px; border: none; background: #ecf0f1; cursor: pointer; border-radius: 4px; }
+        .tab-btn.active { background: #3498db; color: white; }
+        .asset-section { display: none; }
+        .asset-section.active { display: block; }
     </style>
 </head>
 <body>
@@ -303,9 +296,33 @@ def create_dashboard_template():
         </div>
         
         <div class="card">
-            <h2>💹 Live Quotes & Trading</h2>
-            <div class="quotes" id="quotes-grid">
-                <!-- Quotes will be loaded here -->
+            <h2>💹 Live Quotes & Multi-Asset Trading</h2>
+            
+            <div class="asset-tabs">
+                <button class="tab-btn active" onclick="showAssetClass('stocks')">📈 Stocks</button>
+                <button class="tab-btn" onclick="showAssetClass('etfs')">📊 ETFs</button>
+                <button class="tab-btn" onclick="showAssetClass('crypto')">₿ Crypto</button>
+                <button class="tab-btn" onclick="showAssetClass('futures')">📋 Futures</button>
+            </div>
+            
+            <div id="stocks-quotes" class="asset-section active">
+                <h3>📈 Stocks</h3>
+                <div class="quotes" id="stocks-grid"></div>
+            </div>
+            
+            <div id="etfs-quotes" class="asset-section">
+                <h3>📊 ETFs</h3>
+                <div class="quotes" id="etfs-grid"></div>
+            </div>
+            
+            <div id="crypto-quotes" class="asset-section">
+                <h3>₿ Cryptocurrency</h3>
+                <div class="quotes" id="crypto-grid"></div>
+            </div>
+            
+            <div id="futures-quotes" class="asset-section">
+                <h3>📋 Futures</h3>
+                <div class="quotes" id="futures-grid"></div>
             </div>
         </div>
     </div>
@@ -350,26 +367,49 @@ def create_dashboard_template():
                     document.getElementById('connection-status').textContent = 'Connection Error ❌';
                 });
             
-            // Update quotes
+            // Update quotes for all asset classes
             fetch('/api/quotes')
                 .then(response => response.json())
                 .then(data => {
-                    const quotesGrid = document.getElementById('quotes-grid');
-                    quotesGrid.innerHTML = Object.entries(data).map(([symbol, quote]) =>
-                        `<div class="quote">
-                            <h4>${symbol}</h4>
-                            <div>$${quote.price.toFixed(2)}</div>
-                            <div style="font-size: 12px; color: #666;">
-                                Bid: $${quote.bid.toFixed(2)}<br>
-                                Ask: $${quote.ask.toFixed(2)}
-                            </div>
-                            <div style="margin-top: 10px;">
-                                <button class="btn btn-buy" onclick="buyStock('${symbol}', 10)">Buy 10</button>
-                                <button class="btn btn-buy" onclick="buyStock('${symbol}', 1)">Buy 1</button>
-                            </div>
-                        </div>`
-                    ).join('');
+                    updateAssetQuotes('stocks', data.stocks || {});
+                    updateAssetQuotes('etfs', data.etfs || {});
+                    updateAssetQuotes('crypto', data.crypto || {});
+                    updateAssetQuotes('futures', data.futures || {});
                 });
+        }
+        
+        function updateAssetQuotes(assetClass, quotes) {
+            const grid = document.getElementById(`${assetClass}-grid`);
+            if (grid) {
+                grid.innerHTML = Object.entries(quotes).map(([symbol, quote]) =>
+                    `<div class="quote">
+                        <h4>${symbol}</h4>
+                        <div>$${quote.price.toFixed(2)}</div>
+                        <div style="font-size: 12px; color: #666;">
+                            Bid: $${quote.bid.toFixed(2)}<br>
+                            Ask: $${quote.ask.toFixed(2)}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-buy" onclick="buyStock('${symbol}', 10)">Buy 10</button>
+                            <button class="btn btn-buy" onclick="buyStock('${symbol}', 1)">Buy 1</button>
+                        </div>
+                    </div>`
+                ).join('');
+            }
+        }
+        
+        function showAssetClass(assetClass) {
+            // Hide all sections
+            document.querySelectorAll('.asset-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(`${assetClass}-quotes`).classList.add('active');
+            event.target.classList.add('active');
         }
         
         function buyStock(symbol, quantity) {
