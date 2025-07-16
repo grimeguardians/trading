@@ -59,16 +59,8 @@ class TradingConfig:
                 'stocks': ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'NFLX', 'CRM', 'PLTR'],
                 'etfs': ['SPY', 'QQQ', 'VTI', 'ARKK', 'GLD', 'TLT', 'XLF', 'SOXL', 'TQQQ', 'SPXL'],
                 'crypto': [
-                    # Base pairs
-                    'BTCUSD', 'ETHUSD',
-                    # Altcoins paired with BTC for altcoin season
-                    'XRPBTC', 'HBARBTC', 'XLMBTC', 'CROBTC', 'LINKBTC', 
-                    'SOLBTC', 'ADABTC', 'DOTBTC', 'MATICBTC', 'AVAXBTC', 
-                    'ATOMBTC', 'ALGOBTC', 'SUIBTC',
-                    # Altcoins paired with ETH for altcoin season
-                    'XRPETH', 'HBARETH', 'XLMETH', 'CRIETH', 'LINKETH',
-                    'SOLETH', 'ADAETH', 'DOTETH', 'MATICETH', 'AVAXETH',
-                    'ATOMETH', 'ALGOETH', 'SUIETH'
+                    # Flagship crypto pairs available on Alpaca
+                    'BTCUSD', 'ETHUSD', 'XRPUSD'
                 ],
                 'futures': ['ES', 'NQ', 'GC', 'CL', 'ZB', 'ZN', 'EUR', 'GBP'],
                 'options': ['SPY_CALL', 'QQQ_CALL', 'AAPL_CALL', 'TSLA_CALL', 'SPY_PUT', 'QQQ_PUT']

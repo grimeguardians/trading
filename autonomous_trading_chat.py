@@ -8,7 +8,7 @@ import os
 import time
 import threading
 from datetime import datetime
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 import json
 import re
 from typing import Dict, List, Any
@@ -81,35 +81,17 @@ class AutonomousTradingChatBot:
     
     def _extract_symbols(self, message: str) -> List[str]:
         """Extract trading symbols from message with altcoin season support"""
-        # Enhanced crypto symbols
-        crypto_symbols = ['BTC', 'ETH', 'XRP', 'HBAR', 'XLM', 'CRO', 'LINK', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'ATOM', 'ALGO', 'SUI']
+        # Flagship crypto symbols available on Alpaca
+        crypto_symbols = ['BTC', 'ETH', 'XRP']
         stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'SPY', 'QQQ', 'NFLX', 'CRM', 'PLTR']
         
         found_symbols = []
         message_upper = message.upper()
         
-        # Check for explicit crypto pairs (XRP/BTC, XRP/ETH, etc.)
-        if '/' in message_upper:
-            # Handle explicit pair notation like "XRP/BTC"
-            for crypto in crypto_symbols:
-                if f"{crypto}/BTC" in message_upper:
-                    found_symbols.append(f"{crypto}BTC")
-                elif f"{crypto}/ETH" in message_upper:
-                    found_symbols.append(f"{crypto}ETH")
-        else:
-            # Smart altcoin season pairing
-            for crypto in crypto_symbols:
-                if crypto in message_upper:
-                    if crypto in ['BTC', 'ETH']:
-                        # Base pairs stay with USD
-                        found_symbols.append(f"{crypto}USD")
-                    else:
-                        # Altcoins default to BTC pairs for altcoin season
-                        # But also consider ETH pairs based on context
-                        if 'eth' in message.lower() or 'ethereum' in message.lower():
-                            found_symbols.append(f"{crypto}ETH")
-                        else:
-                            found_symbols.append(f"{crypto}BTC")
+        # Check for crypto with USD pairs only (Alpaca available)
+        for crypto in crypto_symbols:
+            if crypto in message_upper:
+                found_symbols.append(f"{crypto}USD")
         
         # Check for stocks
         for stock in stock_symbols:
@@ -132,25 +114,52 @@ class AutonomousTradingChatBot:
             }
         
         symbol = symbols[0]
-        quantity = quantities[0] if quantities else 10  # Default quantity
         
-        # Adjust quantity for different crypto pairs
-        if any(base in symbol for base in ['USD', 'BTC', 'ETH']) and symbol not in ['BTCUSD', 'ETHUSD']:
-            # Altcoin pairs typically need smaller quantities
-            if 'BTC' in symbol or 'ETH' in symbol:
-                quantity = min(quantity, 10)  # Max 10 units for altcoin pairs
-            else:
-                quantity = min(quantity, 1)  # Max 1 unit for USD pairs
+        # Smart position sizing based on available cash and asset type
+        portfolio = self.trader.get_portfolio_status()
+        available_cash = portfolio['cash'] if portfolio else 1000
+        
+        # Get current price to calculate affordable quantity
+        quote = self.trader.get_quote(symbol)
+        if not quote:
+            return {
+                'message': f"❌ Could not get quote for {symbol}",
+                'type': 'error'
+            }
+        
+        current_price = quote['price']
+        
+        # Calculate maximum affordable quantity (use 80% of available cash for safety)
+        max_affordable = max(1, int((available_cash * 0.8) / current_price))
+        
+        # Use user quantity if provided, otherwise use smart defaults
+        if quantities:
+            quantity = quantities[0]
+        else:
+            # Smart defaults based on asset type and price
+            if symbol in ['BTCUSD', 'ETHUSD']:
+                quantity = min(max_affordable, 1)  # Max 1 unit for expensive crypto
+            elif 'USD' in symbol:  # Other crypto
+                quantity = min(max_affordable, 10)  # Max 10 units for cheaper crypto
+            else:  # Stocks
+                quantity = min(max_affordable, 10)  # Max 10 shares for stocks
+        
+        # Final safety check - ensure we can afford it
+        if quantity * current_price > available_cash * 0.8:
+            quantity = max(1, int((available_cash * 0.8) / current_price))
+        
+        # Absolute safety bounds
+        quantity = max(1, min(quantity, max_affordable))
+        
+        # Final affordability check
+        total_cost = quantity * current_price
+        if total_cost > available_cash:
+            return {
+                'message': f"❌ Insufficient funds: Need ${total_cost:.2f}, have ${available_cash:.2f}",
+                'type': 'error'
+            }
         
         try:
-            # Get current quote
-            quote = self.trader.get_quote(symbol)
-            if not quote:
-                return {
-                    'message': f"❌ Could not get quote for {symbol}",
-                    'type': 'error'
-                }
-            
             # Execute trade
             success = self.trader.place_order(symbol, 'BUY', quantity)
             
@@ -579,10 +588,10 @@ class AutonomousTradingChatBot:
                     🤖 <strong>Autonomous Trading:</strong> "Start autonomous trading", "Stop trading"<br>
                     📈 <strong>Market Analysis:</strong> "Risk report", "Monitor NVDA"<br><br>
                     
-                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC/USD, ETH/USD, XRP/BTC, HBAR/ETH, SUI/BTC, etc.), Options, Futures<br>
-                    <strong>Altcoin Season Ready:</strong> Smart pairing with BTC/ETH for maximum altcoin potential<br><br>
+                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC, ETH, XRP), Options, Futures<br>
+                    <strong>Alpaca Paper Trading:</strong> Live market data with intelligent execution<br><br>
                     
-                    Try: <em>"Buy XRP/BTC"</em>, <em>"Buy HBAR against ETH"</em>, <em>"Buy SUI/BTC"</em>, or <em>"What trade ideas do you have?"</em>
+                    Try: <em>"Buy 10 AAPL"</em>, <em>"Buy 0.1 BTC"</em>, <em>"Buy 1 XRP"</em>, or <em>"What trade ideas do you have?"</em>
                 </div>
                 <div class="message-time">Ready for autonomous trading</div>
             </div>
@@ -592,9 +601,8 @@ class AutonomousTradingChatBot:
             <button class="quick-btn" onclick="sendQuickMessage('Show my portfolio status')">📊 Portfolio Status</button>
             <button class="quick-btn" onclick="sendQuickMessage('What trade ideas do you have?')">💡 Trade Ideas</button>
             <button class="quick-btn" onclick="sendQuickMessage('Buy 10 shares of AAPL')">🚀 Buy AAPL</button>
-            <button class="quick-btn" onclick="sendQuickMessage('Buy XRP/BTC')">🔶 Buy XRP/BTC</button>
-            <button class="quick-btn" onclick="sendQuickMessage('Buy HBAR against ETH')">🌿 Buy HBAR/ETH</button>
-            <button class="quick-btn" onclick="sendQuickMessage('Buy SUI/BTC')">🔵 Buy SUI/BTC</button>
+            <button class="quick-btn" onclick="sendQuickMessage('Buy 1 XRP')">🔶 Buy XRP</button>
+            <button class="quick-btn" onclick="sendQuickMessage('Buy 0.1 BTC')">₿ Buy Bitcoin</button>
             <button class="quick-btn" onclick="sendQuickMessage('Start autonomous trading')">🤖 Start Auto</button>
             <button class="quick-btn" onclick="sendQuickMessage('Show my positions')">📋 Positions</button>
             <button class="quick-btn" onclick="sendQuickMessage('Risk report')">⚠️ Risk Report</button>

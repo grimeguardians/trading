@@ -48,7 +48,14 @@ class IntelligentStrategyEngine:
             
         try:
             brain = DigitalBrain()
-            brain.load_state()
+            # Enhanced fallback handling for different brain implementations
+            if hasattr(brain, 'load_state'):
+                brain.load_state()
+            elif hasattr(brain, 'initialize'):
+                brain.initialize()
+            else:
+                print("⚠️ Digital Brain using fallback mode")
+            
             self.logger.info("✅ Digital Brain initialized with trading literature")
             return brain
         except Exception as e:
@@ -95,15 +102,28 @@ class IntelligentStrategyEngine:
             return self._fallback_knowledge(query)
             
         try:
-            # Query the brain for relevant trading knowledge
-            results = self.brain.query_knowledge(query, context={'symbol': symbol})
+            # Enhanced brain querying with different method attempts
+            results = None
+            
+            # Try different query methods
+            if hasattr(self.brain, 'query_knowledge'):
+                results = self.brain.query_knowledge(query, context={'symbol': symbol})
+            elif hasattr(self.brain, 'query'):
+                results = self.brain.query(query)
+            elif hasattr(self.brain, 'search'):
+                results = self.brain.search(query)
+            else:
+                return self._fallback_knowledge(query)
             
             # Extract actionable insights
             insights = []
-            for result in results[:3]:  # Top 3 most relevant
-                if hasattr(result, 'content'):
-                    insights.append(result.content)
-                    
+            if results:
+                for result in results[:3]:  # Top 3 most relevant
+                    if hasattr(result, 'content'):
+                        insights.append(result.content)
+                    elif isinstance(result, str):
+                        insights.append(result)
+                        
             return insights if insights else self._fallback_knowledge(query)
             
         except Exception as e:

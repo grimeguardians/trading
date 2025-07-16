@@ -185,9 +185,11 @@ class AlpacaTrader:
                             # Get intelligent signal from strategy engine
                             signal = strategy_engine.analyze_market_conditions(symbol, market_data)
                             
-                            # Execute trades based on signal
-                            if signal.confidence > 0.35:  # Optimized threshold for active trading
+                            # Execute trades based on signal (lowered threshold for more activity)
+                            if signal.confidence > 0.25:  # Lower threshold for more active trading
                                 self._execute_intelligent_trade(signal, portfolio, market_data)
+                            elif signal.confidence > 0.15:  # Even lower threshold for monitoring
+                                print(f"🔍 Monitoring {symbol}: {signal.action} signal ({signal.confidence:.1%} confidence)")
                             
                             # Manage existing positions
                             self._manage_existing_positions(symbol, market_data, portfolio)
@@ -205,7 +207,7 @@ class AlpacaTrader:
         # Check if we already have a position
         has_position = any(pos['symbol'] == symbol for pos in portfolio['positions'])
         
-        if signal.action == 'BUY' and not has_position and portfolio['cash'] > 1000:
+        if signal.action == 'BUY' and not has_position and portfolio['cash'] > 100:
             
             entry_price = market_data['price']
             
