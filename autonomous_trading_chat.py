@@ -80,7 +80,7 @@ class AutonomousTradingChatBot:
             return self._general_response(message)
     
     def _extract_symbols(self, message: str) -> List[str]:
-        """Extract trading symbols from message"""
+        """Extract trading symbols from message with altcoin season support"""
         # Enhanced crypto symbols
         crypto_symbols = ['BTC', 'ETH', 'XRP', 'HBAR', 'XLM', 'CRO', 'LINK', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'ATOM', 'ALGO']
         stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'SPY', 'QQQ', 'NFLX', 'CRM', 'PLTR']
@@ -88,10 +88,28 @@ class AutonomousTradingChatBot:
         found_symbols = []
         message_upper = message.upper()
         
-        # Check for crypto (add USD suffix)
-        for crypto in crypto_symbols:
-            if crypto in message_upper:
-                found_symbols.append(f"{crypto}USD")
+        # Check for explicit crypto pairs (XRP/BTC, XRP/ETH, etc.)
+        if '/' in message_upper:
+            # Handle explicit pair notation like "XRP/BTC"
+            for crypto in crypto_symbols:
+                if f"{crypto}/BTC" in message_upper:
+                    found_symbols.append(f"{crypto}BTC")
+                elif f"{crypto}/ETH" in message_upper:
+                    found_symbols.append(f"{crypto}ETH")
+        else:
+            # Smart altcoin season pairing
+            for crypto in crypto_symbols:
+                if crypto in message_upper:
+                    if crypto in ['BTC', 'ETH']:
+                        # Base pairs stay with USD
+                        found_symbols.append(f"{crypto}USD")
+                    else:
+                        # Altcoins default to BTC pairs for altcoin season
+                        # But also consider ETH pairs based on context
+                        if 'eth' in message.lower() or 'ethereum' in message.lower():
+                            found_symbols.append(f"{crypto}ETH")
+                        else:
+                            found_symbols.append(f"{crypto}BTC")
         
         # Check for stocks
         for stock in stock_symbols:
@@ -116,9 +134,13 @@ class AutonomousTradingChatBot:
         symbol = symbols[0]
         quantity = quantities[0] if quantities else 10  # Default quantity
         
-        # Adjust quantity for crypto (smaller amounts)
-        if 'USD' in symbol and quantity > 1:
-            quantity = min(quantity, 1)  # Max 1 unit for crypto
+        # Adjust quantity for different crypto pairs
+        if any(base in symbol for base in ['USD', 'BTC', 'ETH']) and symbol not in ['BTCUSD', 'ETHUSD']:
+            # Altcoin pairs typically need smaller quantities
+            if 'BTC' in symbol or 'ETH' in symbol:
+                quantity = min(quantity, 10)  # Max 10 units for altcoin pairs
+            else:
+                quantity = min(quantity, 1)  # Max 1 unit for USD pairs
         
         try:
             # Get current quote
@@ -557,9 +579,10 @@ class AutonomousTradingChatBot:
                     🤖 <strong>Autonomous Trading:</strong> "Start autonomous trading", "Stop trading"<br>
                     📈 <strong>Market Analysis:</strong> "Risk report", "Monitor NVDA"<br><br>
                     
-                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC, ETH, XRP, HBAR, XLM, CRO, LINK, MATIC, AVAX), Options, Futures<br><br>
+                    <strong>Supported Assets:</strong> Stocks, ETFs, Crypto (BTC/USD, ETH/USD, XRP/BTC, HBAR/ETH, etc.), Options, Futures<br>
+                    <strong>Altcoin Season Ready:</strong> Smart pairing with BTC/ETH for maximum altcoin potential<br><br>
                     
-                    Try: <em>"Buy 5 shares of TSLA"</em> or <em>"What trade ideas do you have?"</em>
+                    Try: <em>"Buy XRP/BTC"</em>, <em>"Buy HBAR against ETH"</em>, or <em>"What trade ideas do you have?"</em>
                 </div>
                 <div class="message-time">Ready for autonomous trading</div>
             </div>
@@ -569,7 +592,8 @@ class AutonomousTradingChatBot:
             <button class="quick-btn" onclick="sendQuickMessage('Show my portfolio status')">📊 Portfolio Status</button>
             <button class="quick-btn" onclick="sendQuickMessage('What trade ideas do you have?')">💡 Trade Ideas</button>
             <button class="quick-btn" onclick="sendQuickMessage('Buy 10 shares of AAPL')">🚀 Buy AAPL</button>
-            <button class="quick-btn" onclick="sendQuickMessage('Buy 0.1 BTC')">₿ Buy Bitcoin</button>
+            <button class="quick-btn" onclick="sendQuickMessage('Buy XRP/BTC')">🔶 Buy XRP/BTC</button>
+            <button class="quick-btn" onclick="sendQuickMessage('Buy HBAR against ETH')">🌿 Buy HBAR/ETH</button>
             <button class="quick-btn" onclick="sendQuickMessage('Start autonomous trading')">🤖 Start Auto</button>
             <button class="quick-btn" onclick="sendQuickMessage('Show my positions')">📋 Positions</button>
             <button class="quick-btn" onclick="sendQuickMessage('Risk report')">⚠️ Risk Report</button>
