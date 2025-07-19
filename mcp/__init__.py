@@ -1,0 +1,1 @@
+# MCP (Multi-Agent Communication Protocol) components

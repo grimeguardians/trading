@@ -1,122 +1,224 @@
-#!/usr/bin/env python3
 """
-Unified Configuration Management for Trading Bot
-Centralized settings with environment-specific overrides
+Configuration management for the Advanced AI Trading System
+Following 12-factor app principles with environment-based configuration
 """
 
 import os
+from typing import Dict, List, Optional
 from dataclasses import dataclass
-from typing import Dict, List
-from dotenv import load_dotenv
+from datetime import timedelta
 
-load_dotenv()
 
 @dataclass
-class TradingConfig:
-    """Centralized trading configuration"""
+class ExchangeConfig:
+    """Configuration for individual exchanges"""
+    name: str
+    enabled: bool
+    api_key: str
+    api_secret: str
+    passphrase: Optional[str] = None
+    sandbox: bool = True
+    rate_limit: int = 100  # requests per minute
+    supported_assets: List[str] = None
+
+
+class Config:
+    """Main configuration class with environment variable support"""
     
-    # Environment
-    environment: str = os.getenv('ENVIRONMENT', 'development')
-    debug_mode: bool = os.getenv('DEBUG', 'true').lower() == 'true'
+    # Application Settings
+    DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+    SECRET_KEY = os.environ.get("SECRET_KEY", "advanced-trading-system-secret")
     
-    # API Keys
-    alpaca_api_key: str = os.getenv('ALPACA_API_KEY', '')
-    alpaca_secret_key: str = os.getenv('ALPACA_SECRET_KEY', '')
-    openai_api_key: str = os.getenv('OPENAI_API_KEY', '')
+    # Database Configuration
+    DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///trading_system.db")
     
-    # Trading Settings
-    paper_trading: bool = True
-    max_position_size: float = 1000.0
-    default_quantity: int = 10
-    risk_per_trade: float = 0.02  # 2% risk per trade
+    # MCP Server Configuration
+    MCP_HOST = os.environ.get("MCP_HOST", "127.0.0.1")
+    MCP_PORT = int(os.environ.get("MCP_PORT", "9000"))
     
-    # Asset Classes
-    enabled_assets: List[str] = None
-    symbols: Dict[str, List[str]] = None
+    # AI/ML Configuration
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    
+    # Trading Configuration
+    PAPER_TRADING = os.environ.get("PAPER_TRADING", "true").lower() == "true"
+    MAX_POSITION_SIZE = float(os.environ.get("MAX_POSITION_SIZE", "0.1"))  # 10% of portfolio
+    RISK_PER_TRADE = float(os.environ.get("RISK_PER_TRADE", "0.02"))  # 2% risk per trade
+    
+    # Exchange API Keys and Configuration
+    EXCHANGES = {
+        "alpaca": ExchangeConfig(
+            name="alpaca",
+            enabled=os.environ.get("ALPACA_ENABLED", "true").lower() == "true",
+            api_key=os.environ.get("ALPACA_API_KEY", ""),
+            api_secret=os.environ.get("ALPACA_SECRET_KEY", ""),
+            sandbox=os.environ.get("ALPACA_SANDBOX", "true").lower() == "true",
+            supported_assets=["stocks", "crypto", "etf", "options"]
+        ),
+        "binance": ExchangeConfig(
+            name="binance",
+            enabled=os.environ.get("BINANCE_ENABLED", "false").lower() == "true",
+            api_key=os.environ.get("BINANCE_API_KEY", ""),
+            api_secret=os.environ.get("BINANCE_SECRET_KEY", ""),
+            sandbox=os.environ.get("BINANCE_SANDBOX", "true").lower() == "true",
+            supported_assets=["crypto", "futures"]
+        ),
+        "kucoin": ExchangeConfig(
+            name="kucoin",
+            enabled=os.environ.get("KUCOIN_ENABLED", "false").lower() == "true",
+            api_key=os.environ.get("KUCOIN_API_KEY", ""),
+            api_secret=os.environ.get("KUCOIN_SECRET_KEY", ""),
+            passphrase=os.environ.get("KUCOIN_PASSPHRASE", ""),
+            sandbox=os.environ.get("KUCOIN_SANDBOX", "true").lower() == "true",
+            supported_assets=["crypto", "futures"]
+        ),
+        "td_ameritrade": ExchangeConfig(
+            name="td_ameritrade",
+            enabled=os.environ.get("TD_ENABLED", "false").lower() == "true",
+            api_key=os.environ.get("TD_API_KEY", ""),
+            api_secret=os.environ.get("TD_SECRET_KEY", ""),
+            sandbox=os.environ.get("TD_SANDBOX", "true").lower() == "true",
+            supported_assets=["stocks", "options", "futures"]
+        )
+    }
+    
+    # Strategy Configuration
+    STRATEGIES = {
+        "swing": {
+            "enabled": os.environ.get("SWING_ENABLED", "true").lower() == "true",
+            "timeframe": "1h",
+            "max_positions": int(os.environ.get("SWING_MAX_POSITIONS", "5")),
+            "min_profit_target": float(os.environ.get("SWING_MIN_PROFIT", "0.05"))
+        },
+        "scalping": {
+            "enabled": os.environ.get("SCALPING_ENABLED", "false").lower() == "true",
+            "timeframe": "1m",
+            "max_positions": int(os.environ.get("SCALPING_MAX_POSITIONS", "3")),
+            "min_profit_target": float(os.environ.get("SCALPING_MIN_PROFIT", "0.01"))
+        },
+        "options": {
+            "enabled": os.environ.get("OPTIONS_ENABLED", "false").lower() == "true",
+            "max_positions": int(os.environ.get("OPTIONS_MAX_POSITIONS", "10")),
+            "min_profit_target": float(os.environ.get("OPTIONS_MIN_PROFIT", "0.20"))
+        },
+        "intraday": {
+            "enabled": os.environ.get("INTRADAY_ENABLED", "true").lower() == "true",
+            "timeframe": "15m",
+            "max_positions": int(os.environ.get("INTRADAY_MAX_POSITIONS", "8")),
+            "min_profit_target": float(os.environ.get("INTRADAY_MIN_PROFIT", "0.03"))
+        }
+    }
+    
+    # Technical Analysis Configuration
+    FIBONACCI_LEVELS = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.618, 2.618]
     
     # Risk Management
-    stop_loss_percentage: float = 0.05  # 5% stop loss
-    take_profit_percentage: float = 0.10  # 10% take profit
-    max_daily_loss: float = 0.05  # 5% max daily loss
+    STOP_LOSS_PERCENTAGE = float(os.environ.get("STOP_LOSS_PCT", "0.02"))  # 2%
+    TAKE_PROFIT_PERCENTAGE = float(os.environ.get("TAKE_PROFIT_PCT", "0.06"))  # 6%
+    MAX_DRAWDOWN = float(os.environ.get("MAX_DRAWDOWN", "0.10"))  # 10%
     
-    # Performance
-    data_refresh_interval: int = 10  # seconds
-    portfolio_check_interval: int = 60  # seconds
-    max_concurrent_orders: int = 5
+    # Machine Learning Configuration
+    ML_MODEL_UPDATE_INTERVAL = int(os.environ.get("ML_UPDATE_INTERVAL", "3600"))  # seconds
+    ML_MIN_ACCURACY_THRESHOLD = float(os.environ.get("ML_MIN_ACCURACY", "0.60"))
     
-    # Logging
-    log_level: str = os.getenv('LOG_LEVEL', 'INFO')
-    log_file: str = 'trading_bot.log'
+    # Logging Configuration
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+    LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
-    def __post_init__(self):
-        """Initialize default values after creation"""
-        if self.enabled_assets is None:
-            self.enabled_assets = ['stocks', 'etfs', 'crypto']
-            
-        if self.symbols is None:
-            # Comprehensive trading symbols by asset class
-            self.symbols = {
-                'stocks': ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'NFLX', 'CRM', 'PLTR'],
-                'etfs': ['SPY', 'QQQ', 'VTI', 'ARKK', 'GLD', 'TLT', 'XLF', 'SOXL', 'TQQQ', 'SPXL'],
-                'crypto': [
-                    # Flagship crypto pairs available on Alpaca
-                    'BTCUSD', 'ETHUSD', 'XRPUSD'
-                ],
-                'futures': ['ES', 'NQ', 'GC', 'CL', 'ZB', 'ZN', 'EUR', 'GBP'],
-                'options': ['SPY_CALL', 'QQQ_CALL', 'AAPL_CALL', 'TSLA_CALL', 'SPY_PUT', 'QQQ_PUT']
-            }
+    # Web Interface Configuration
+    DASHBOARD_PORT = int(os.environ.get("DASHBOARD_PORT", "5000"))
+    API_PORT = int(os.environ.get("API_PORT", "8000"))
     
-    @property
-    def is_production(self) -> bool:
-        """Check if running in production environment"""
-        return self.environment.lower() == 'production'
+    # Performance Optimization
+    CACHE_TTL = int(os.environ.get("CACHE_TTL", "300"))  # 5 minutes
+    MAX_CACHE_SIZE = int(os.environ.get("MAX_CACHE_SIZE", "1000"))
     
-    @property
-    def all_symbols(self) -> List[str]:
-        """Get all symbols from enabled asset classes"""
-        symbols = []
-        for asset_class in self.enabled_assets:
-            if asset_class in self.symbols:
-                symbols.extend(self.symbols[asset_class])
-        return symbols
+    # Market Data Configuration
+    DATA_SOURCES = {
+        "primary": os.environ.get("PRIMARY_DATA_SOURCE", "alpaca"),
+        "fallback": os.environ.get("FALLBACK_DATA_SOURCE", "yahoo"),
+        "realtime": os.environ.get("REALTIME_DATA", "true").lower() == "true"
+    }
     
-    def get_symbols_for_asset(self, asset_class: str) -> List[str]:
-        """Get symbols for specific asset class"""
-        return self.symbols.get(asset_class, [])
+    # Notification Configuration
+    SLACK_WEBHOOK = os.environ.get("SLACK_WEBHOOK", "")
+    EMAIL_ENABLED = os.environ.get("EMAIL_ENABLED", "false").lower() == "true"
+    EMAIL_SMTP_SERVER = os.environ.get("EMAIL_SMTP_SERVER", "")
+    EMAIL_SMTP_PORT = int(os.environ.get("EMAIL_SMTP_PORT", "587"))
+    EMAIL_USERNAME = os.environ.get("EMAIL_USERNAME", "")
+    EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")
     
-    def update_config(self, **kwargs):
-        """Dynamically update configuration"""
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+    # Backtesting Configuration
+    BACKTEST_START_DATE = os.environ.get("BACKTEST_START_DATE", "2020-01-01")
+    BACKTEST_END_DATE = os.environ.get("BACKTEST_END_DATE", "2024-12-31")
+    BACKTEST_INITIAL_CAPITAL = float(os.environ.get("BACKTEST_CAPITAL", "100000"))
     
-    def validate(self) -> bool:
-        """Validate configuration"""
-        if not self.alpaca_api_key or not self.alpaca_secret_key:
-            print("❌ Missing Alpaca API credentials")
-            return False
-            
-        if self.risk_per_trade > 0.1:  # More than 10%
-            print("⚠️ Risk per trade is very high (>10%)")
-            
-        if self.stop_loss_percentage > 0.2:  # More than 20%
-            print("⚠️ Stop loss percentage is very high (>20%)")
-            
-        return True
-
-# Global configuration instance
-config = TradingConfig()
-
-# Environment-specific overrides
-if config.environment == 'production':
-    config.debug_mode = False
-    config.log_level = 'WARNING'
-    config.data_refresh_interval = 5
-elif config.environment == 'testing':
-    config.paper_trading = True
-    config.max_position_size = 100.0
-    config.symbols['stocks'] = ['AAPL', 'MSFT']  # Limited for testing
-
-# Configuration validation
-if not config.validate():
-    print("⚠️ Configuration validation failed - check your settings")
+    @classmethod
+    def get_enabled_exchanges(cls) -> List[str]:
+        """Get list of enabled exchanges"""
+        return [name for name, config in cls.EXCHANGES.items() if config.enabled]
+    
+    @classmethod
+    def get_exchange_config(cls, exchange_name: str) -> Optional[ExchangeConfig]:
+        """Get configuration for specific exchange"""
+        return cls.EXCHANGES.get(exchange_name)
+    
+    @classmethod
+    def get_enabled_strategies(cls) -> List[str]:
+        """Get list of enabled strategies"""
+        return [name for name, config in cls.STRATEGIES.items() if config.get("enabled", False)]
+    
+    @classmethod
+    def validate_configuration(cls) -> List[str]:
+        """Validate configuration and return list of issues"""
+        issues = []
+        
+        # Check required AI API keys
+        if not cls.OPENAI_API_KEY and not cls.ANTHROPIC_API_KEY:
+            issues.append("At least one AI API key (OpenAI or Anthropic) is required")
+        
+        # Check exchange configurations
+        enabled_exchanges = cls.get_enabled_exchanges()
+        if not enabled_exchanges:
+            issues.append("At least one exchange must be enabled")
+        
+        for exchange_name in enabled_exchanges:
+            config = cls.get_exchange_config(exchange_name)
+            if not config.api_key:
+                issues.append(f"API key missing for {exchange_name}")
+            if not config.api_secret:
+                issues.append(f"API secret missing for {exchange_name}")
+        
+        # Check strategy configurations
+        enabled_strategies = cls.get_enabled_strategies()
+        if not enabled_strategies:
+            issues.append("At least one strategy must be enabled")
+        
+        # Check risk management parameters
+        if cls.STOP_LOSS_PERCENTAGE <= 0 or cls.STOP_LOSS_PERCENTAGE >= 1:
+            issues.append("Stop loss percentage must be between 0 and 1")
+        
+        if cls.TAKE_PROFIT_PERCENTAGE <= 0:
+            issues.append("Take profit percentage must be positive")
+        
+        if cls.MAX_DRAWDOWN <= 0 or cls.MAX_DRAWDOWN >= 1:
+            issues.append("Max drawdown must be between 0 and 1")
+        
+        return issues
+    
+    @classmethod
+    def print_configuration_summary(cls):
+        """Print configuration summary for debugging"""
+        print("\n🔧 Configuration Summary:")
+        print(f"   Debug Mode: {cls.DEBUG}")
+        print(f"   Paper Trading: {cls.PAPER_TRADING}")
+        print(f"   Enabled Exchanges: {cls.get_enabled_exchanges()}")
+        print(f"   Enabled Strategies: {cls.get_enabled_strategies()}")
+        print(f"   Max Position Size: {cls.MAX_POSITION_SIZE * 100}%")
+        print(f"   Risk Per Trade: {cls.RISK_PER_TRADE * 100}%")
+        print(f"   Stop Loss: {cls.STOP_LOSS_PERCENTAGE * 100}%")
+        print(f"   Take Profit: {cls.TAKE_PROFIT_PERCENTAGE * 100}%")
+        print(f"   Max Drawdown: {cls.MAX_DRAWDOWN * 100}%")
+        print(f"   Dashboard Port: {cls.DASHBOARD_PORT}")
+        print(f"   API Port: {cls.API_PORT}")
+        print()

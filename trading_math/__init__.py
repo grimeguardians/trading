@@ -1,0 +1,1 @@
+# Mathematical and technical analysis components (renamed from math to avoid conflicts)

@@ -1,0 +1,111 @@
+<AITradingAgentEnhancementPrompt>
+
+  <Vision>
+    Combine my existing project's sophisticated "Digital Brain"—rich in advanced trading literature, psychology, risk management, discipline, and extensive knowledge base—with Freqtrade’s open-source trading bot framework. Closely mirror Freqtrade’s proven structure and schema, integrating my advanced knowledge architecture for maximum efficacy.
+  </Vision>
+
+  <ProjectIntegration>
+    <ExistingProject>
+      <Strengths>
+        <Strength>Advanced, comprehensive "Digital Brain"</Strength>
+        <Strength>Alpaca Markets successful trade management</Strength>
+      </Strengths>
+      <Weaknesses>
+        <Weakness>Complex integration processes</Weakness>
+      </Weaknesses>
+    </ExistingProject>
+
+    <TargetFramework>
+      <Name>Freqtrade</Name>
+      <Strengths>
+        <Strength>Modularity and efficient architecture</Strength>
+        <Strength>Comprehensive testing and analytics</Strength>
+        <Strength>Proven schema and integration methods</Strength>
+      </Strengths>
+    </TargetFramework>
+
+    <IntegrationObjectives>
+      <Objective>Closely mirror Freqtrade’s schema and architecture</Objective>
+      <Objective>Integrate advanced knowledge ("Digital Brain") dynamically</Objective>
+      <Objective>Efficient Alpaca Markets integration</Objective>
+      <Objective>Implement and validate features incrementally</Objective>
+    </IntegrationObjectives>
+  </ProjectIntegration>
+
+  <CoreRequirements>
+
+    <CriticalMathematicsIntegration importance="extremely_high">
+      <Description>
+        It is of extreme importance to rigorously integrate Fibonacci retracement and extension levels, along with other critical mathematical models and formulas (such as harmonic patterns, statistical analysis, volatility modeling, and probability distributions) deeply within the trading and risk management logic. These methods significantly enhance the precision of entry/exit timing, risk/reward estimation, and optimal trade structuring decisions.
+      </Description>
+      <KeyMathematics>
+        <Technique>Fibonacci retracement &amp; extension analysis</Technique>
+        <Technique>Statistical volatility modeling (e.g., GARCH)</Technique>
+        <Technique>Probability distribution assessments (Monte Carlo)</Technique>
+        <Technique>Technical indicators and harmonic patterns</Technique>
+      </KeyMathematics>
+    </CriticalMathematicsIntegration>
+
+    <DashboardEnhancements>
+      <StrategiesDropdown simplicity="high_priority">
+        <Description>
+          Provide a clean, intuitive dropdown menu for users to select predefined strategies easily. Do not overcomplicate—clearly group strategies into four essential categories for ease-of-use and accessibility.
+        </Description>
+        <Categories>
+          <Category>Swing Trade</Category>
+          <Category>Scalping</Category>
+          <Category>Options</Category>
+          <Category>Intraday</Category>
+        </Categories>
+      </StrategiesDropdown>
+    </DashboardEnhancements>
+
+    <TradingCapabilities>
+      <BrokerIntegration>
+        <Broker>Alpaca Markets (Primary)</Broker>
+      </BrokerIntegration>
+
+      <AssetClassesSupported>
+        <Asset>Stocks (spot)</Asset>
+        <Asset>Crypto (spot)</Asset>
+        <Asset>ETFs</Asset>
+        <Asset>Options contracts</Asset>
+        <Asset>Futures contracts</Asset>
+      </AssetClassesSupported>
+
+      <RiskManagement>
+        <Feature>Portfolio risk management</Feature>
+        <Feature>Dynamic stop-losses</Feature>
+        <Feature>Correlation analysis</Feature>
+      </RiskManagement>
+
+      <MachineLearningPipeline>
+        <Feature>Automated feature engineering</Feature>
+        <Feature>Dynamic model selection</Feature>
+      </MachineLearningPipeline>
+
+      <TestingValidation>
+        <Feature>Incremental, thorough testing</Feature>
+      </TestingValidation>
+    </TradingCapabilities>
+
+    <ConversationalAI>
+      <Description>
+        Advanced, context-aware, natural language conversational interface enabling dynamic access and integration of Digital Brain knowledge.
+      </Description>
+      <Capabilities>
+        <Capability>Natural-language understanding</Capability>
+        <Capability>Real-time market insights</Capability>
+        <Capability>Contextual memory retrieval</Capability>
+      </Capabilities>
+
+      <ExampleTraderCommands minimum="25">
+        <Command>Current market sentiment?</Command>
+        <Command>AAPL stock analysis?</Command>
+        <Command>Promising setups now?</Command>
+        <Command>Adjust stop-losses?</Command>
+        <Command>Bitcoin volatility outlook?</Command>
+        <Command>Compare strategy Alpha vs Beta?</Command>
+        <Command>Today's economic news summary?</Command>
+        <Command>Current correlated assets?</Command>
+        <Command>Portfolio
