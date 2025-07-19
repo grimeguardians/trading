@@ -36,7 +36,15 @@ except ImportError:
     np = MockNumpy()
     pd = MockPandas()
 
-from config import Config
+# Import Config from the root config.py file
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import importlib.util
+spec = importlib.util.spec_from_file_location("config_module", os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.py"))
+config_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(config_module)
+Config = config_module.Config
 # Simplified imports to avoid circular dependencies
 # from core.knowledge_engine import KnowledgeEngine
 # from core.risk_manager import RiskManager

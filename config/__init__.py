@@ -1,8 +1,4 @@
 # Configuration package
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from .settings import get_settings, Settings
 
-from config import Config, ExchangeConfig
-
-__all__ = ['Config', 'ExchangeConfig']
+__all__ = ['get_settings', 'Settings']
