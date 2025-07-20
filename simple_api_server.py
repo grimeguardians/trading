@@ -256,88 +256,89 @@ async def api_get_strategies():
 
 @app.post("/api/chat")
 async def api_chat(message: dict):
-    """Handle chat messages with AI trading assistant"""
+    """Handle chat messages with AI trading assistant - WITH LIVE TRADING CAPABILITIES"""
     user_message = message.get("message", "").strip()
     
-    # Check if OpenAI is available
-    openai_key = os.getenv("OPENAI_API_KEY")
+    if not user_message:
+        return {"response": "Please provide a message.", "success": False}
     
-    if openai_key and user_message:
+    try:
+        # Import and use the full conversational AI system with trading capabilities
+        from ai.conversational_ai import conversational_ai
+        
+        # Get portfolio context for better responses
+        portfolio_context = await get_portfolio_internal()
+        
+        # Prepare comprehensive context for AI
+        context = {
+            "portfolio": portfolio_context,
+            "market_status": {
+                "market_state": "open" if is_market_open() else "closed",
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
+        # Get AI response with trading command execution
+        logger.info(f"🎯 CHAT REQUEST: '{user_message}'")
+        result = conversational_ai.get_response(user_message, context=context)
+        logger.info(f"🎯 CHAT RESPONSE: {result}")
+        
+        # Return the full response with command execution info
+        return {
+            "response": result.get("response", "I apologize, but I couldn't process your request."),
+            "success": True,
+            "command_executed": result.get("command_executed", False),
+            "command_result": result.get("command_result"),
+            "model": result.get("model", "conversational_ai"),
+            "timestamp": result.get("timestamp", datetime.now().isoformat())
+        }
+        
+    except Exception as e:
+        logger.error(f"Chat API error: {e}")
+        # Fallback to basic response
+        return {
+            "response": f"I'm having trouble processing your request right now. Error: {str(e)}",
+            "success": False
+        }
+
+def is_market_open() -> bool:
+    """Check if market is currently open"""
+    now = datetime.now()
+    # Simple check: Monday-Friday, 9:30 AM - 4:00 PM ET
+    if now.weekday() >= 5:  # Saturday = 5, Sunday = 6
+        return False
+    
+    # Simplified time check (assumes ET)
+    hour = now.hour
+    return 9 <= hour < 16
+
+async def get_portfolio_internal():
+    """Get portfolio data for AI context"""
+    if alpaca_client:
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=openai_key)
-            
-            # Create a trading-focused system prompt
-            system_prompt = """You are an expert AI trading assistant for the Brobot trading system. You have access to real-time market data and portfolio information. 
-
-Key capabilities:
-- Analyze stocks, options, crypto, and market trends
-- Provide technical analysis and trading insights
-- Risk management recommendations
-- Portfolio optimization suggestions
-- Market sentiment analysis
-
-Current account: Brobot with $2,500 cash, paper trading enabled.
-Active strategies: Swing Trading (72.3% win rate), Intraday (68.7% win rate).
-
-Respond professionally with actionable trading insights. Keep responses concise but informative."""
-
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                max_tokens=300,
-                temperature=0.7
-            )
-            
-            ai_response = response.choices[0].message.content.strip()
+            account = alpaca_client.get_account()
+            positions = alpaca_client.list_positions()
             
             return {
-                "response": ai_response,
-                "success": True
+                "total_value": float(account.portfolio_value),
+                "cash": float(account.cash),
+                "day_pnl": float(account.unrealized_pl),
+                "day_change": float(account.unrealized_plpc) * 100,
+                "positions_count": len(positions),
+                "buying_power": float(account.buying_power)
             }
-            
         except Exception as e:
-            logger.error(f"OpenAI API error: {e}")
-            # Fall through to pattern matching instead of generic response
+            logger.error(f"Error getting real portfolio: {e}")
     
-    # Fallback responses for common trading queries
-    if not user_message:
-        return {
-            "response": "Hello! I'm your AI trading assistant. Ask me about stocks, market analysis, or trading strategies.",
-            "success": True
-        }
-    
-    # Simple pattern matching for common queries
-    user_lower = user_message.lower()
-    
-    if any(symbol in user_lower for symbol in ['nvda', 'nvidia']):
-        return {
-            "response": "NVDA (NVIDIA) is a strong AI and semiconductor play. Currently trading around $875. With AI demand continuing, it shows good long-term potential. Consider our swing trading strategy for entry points. Current market conditions favor tech stocks. Your $2,500 account could handle 2-3 shares with proper risk management.",
-            "success": True
-        }
-    elif any(symbol in user_lower for symbol in ['aapl', 'apple']):
-        return {
-            "response": "AAPL is a stable large-cap stock around $150. Good for conservative portfolio allocation. Strong fundamentals and dividend history. Our swing strategy shows 72.3% win rate - could be suitable for AAPL positions.",
-            "success": True
-        }
-    elif 'portfolio' in user_lower or 'account' in user_lower:
-        return {
-            "response": "Your Brobot account shows $2,500 cash with $1,856 buying power. No current positions. Both swing trading (72.3% win rate) and intraday (68.7% win rate) strategies are active. Consider starting with 1-2% position sizing for risk management.",
-            "success": True
-        }
-    elif any(word in user_lower for word in ['strategy', 'trade', 'buy', 'sell']):
-        return {
-            "response": "Our active strategies are performing well: Swing Trading at 72.3% win rate (3.2 day avg hold) and Intraday at 68.7% win rate (2.1 hour avg). With your $2,500 account, I recommend starting with swing trades for better risk-adjusted returns.",
-            "success": True
-        }
-    else:
-        return {
-            "response": f"Thanks for your question about {user_message}. I'm analyzing market conditions for you. Your Brobot account ($2,500) is ready for trading. Our AI strategies are actively monitoring opportunities. Would you like specific analysis on any stocks or trading strategies?",
-            "success": True
-        }
+    # Return mock data if Alpaca not available
+    return {
+        "total_value": 2500.0,
+        "cash": 2500.0,
+        "day_pnl": 0.0,
+        "day_change": 0.0,
+        "positions_count": 0,
+        "buying_power": 5000.0
+    }
 
 @app.post("/trade")
 async def execute_trade(symbol: str, side: str, quantity: float):
