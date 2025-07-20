@@ -17,7 +17,7 @@ class TradingConversationalAI:
     """AI-powered conversational interface for trading assistant"""
     
     def __init__(self):
-        self.api_key = os.getenv('OPENAI_KEY')
+        self.api_key = os.getenv('OPENAI_API_KEY') or os.getenv('OPENAI_KEY')
         if not self.api_key:
             logger.warning("OpenAI API key not found. Chat will use fallback responses.")
             self.client = None

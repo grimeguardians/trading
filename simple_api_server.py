@@ -264,6 +264,9 @@ async def api_chat(message: dict):
     
     try:
         # Import and use the full conversational AI system with trading capabilities
+        import sys
+        import os
+        sys.path.append(os.path.dirname(__file__))
         from ai.conversational_ai import conversational_ai
         
         # Get portfolio context for better responses
@@ -295,10 +298,15 @@ async def api_chat(message: dict):
         
     except Exception as e:
         logger.error(f"Chat API error: {e}")
-        # Fallback to basic response
+        logger.error(f"Error type: {type(e)}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        
+        # Fallback response that indicates the issue
         return {
-            "response": f"I'm having trouble processing your request right now. Error: {str(e)}",
-            "success": False
+            "response": f"⚠️ I'm currently experiencing a connection issue with my trading systems. The error is: {str(e)}. I should be able to execute trades like 'Buy 5 shares of AAPL' or 'Check my portfolio' once this is resolved. Please try restarting the server or check the API configuration.",
+            "success": False,
+            "error_details": str(e)
         }
 
 def is_market_open() -> bool:
