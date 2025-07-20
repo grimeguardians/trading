@@ -85,34 +85,7 @@ class TradeResponse(BaseModel):
     message: str
     trade_id: Optional[str] = None
 
-# Mock data for testing - will be replaced with real Alpaca data
-mock_portfolio = {
-    "account_name": "Brobot",
-    "total_value": 100000.0,
-    "cash": 50000.0,
-    "cash_balance": 50000.0,
-    "day_change": 2.35,
-    "day_pnl": 2350.0,
-    "total_equity": 100000.0,
-    "buying_power": 200000.0,
-    "positions": [
-        {"symbol": "AAPL", "quantity": 100, "current_price": 150.0, "unrealized_pnl": 500.0},
-        {"symbol": "BTC/USD", "quantity": 0.5, "current_price": 45000.0, "unrealized_pnl": 1200.0}
-    ],
-    "positions_count": 2
-}
-
-mock_trades = [
-    {
-        "id": "trade_001",
-        "symbol": "AAPL", 
-        "side": "buy",
-        "quantity": 100,
-        "price": 149.50,
-        "timestamp": "2025-07-19T10:30:00Z",
-        "profit_loss": 50.0
-    }
-]
+# NO MOCK DATA - ALL DATA COMES FROM REAL ALPACA API
 
 # API Routes
 @app.get("/")
@@ -147,7 +120,8 @@ async def api_system_status():
 
 @app.get("/portfolio")
 async def get_portfolio():
-    return mock_portfolio
+    """Get real portfolio data from Alpaca"""
+    return await get_portfolio_internal()
 
 async def get_real_alpaca_portfolio():
     """Get real portfolio data from Alpaca"""
@@ -200,11 +174,15 @@ async def get_real_alpaca_portfolio():
         
     except Exception as e:
         logger.error(f"❌ Error fetching Alpaca portfolio: {e}")
-        # Return mock data with error indication
-        mock_data = mock_portfolio.copy()
-        mock_data["account_name"] = "Brobot (Mock - API Error)"
-        mock_data["positions_count"] = len(mock_data.get("positions", []))
-        return mock_data
+        # Return error response
+        return {
+            "error": f"Failed to get portfolio data: {str(e)}",
+            "account_name": "Error - API Connection Failed",
+            "total_value": 0.0,
+            "cash": 0.0,
+            "positions": [],
+            "positions_count": 0
+        }
 
 @app.get("/api/portfolio") 
 async def api_get_portfolio():
@@ -212,11 +190,41 @@ async def api_get_portfolio():
 
 @app.get("/trades")
 async def get_trades():
-    return {"trades": mock_trades}
+    """Get real trades from Alpaca"""
+    return await get_real_trades()
 
 @app.get("/api/trades")
 async def api_get_trades():
-    return {"trades": mock_trades}
+    """Get real trades from Alpaca"""
+    return await get_real_trades()
+
+async def get_real_trades():
+    """Get real trade history from Alpaca"""
+    if not alpaca_client:
+        return {"trades": [], "error": "Alpaca client not available"}
+    
+    try:
+        # Get recent orders
+        orders = alpaca_client.list_orders(status='all', limit=50)
+        
+        trades = []
+        for order in orders:
+            trades.append({
+                "id": order.id,
+                "symbol": order.symbol,
+                "side": order.side,
+                "quantity": float(order.qty),
+                "price": float(order.filled_avg_price) if order.filled_avg_price else float(order.limit_price) if order.limit_price else 0.0,
+                "timestamp": order.created_at.isoformat() if order.created_at else "",
+                "status": order.status,
+                "profit_loss": 0.0  # Would need to calculate based on position
+            })
+        
+        return {"trades": trades}
+        
+    except Exception as e:
+        logger.error(f"Error getting trades: {e}")
+        return {"trades": [], "error": f"Failed to get trades: {str(e)}"}
 
 @app.get("/strategies")
 async def get_strategies():
@@ -259,18 +267,25 @@ async def api_chat(message: dict):
     """Handle chat messages with AI trading assistant - WITH LIVE TRADING CAPABILITIES"""
     user_message = message.get("message", "").strip()
     
+    logger.info(f"🎯 CHAT API CALLED with message: '{user_message}'")
+    
     if not user_message:
+        logger.warning("Empty message received")
         return {"response": "Please provide a message.", "success": False}
     
     try:
+        logger.info("🔄 Importing conversational AI...")
         # Import and use the full conversational AI system with trading capabilities
         import sys
         import os
         sys.path.append(os.path.dirname(__file__))
         from ai.conversational_ai import conversational_ai
+        logger.info("✅ Conversational AI imported successfully")
         
         # Get portfolio context for better responses
+        logger.info("🔄 Getting portfolio context...")
         portfolio_context = await get_portfolio_internal()
+        logger.info(f"✅ Portfolio context: {portfolio_context}")
         
         # Prepare comprehensive context for AI
         context = {
@@ -280,14 +295,15 @@ async def api_chat(message: dict):
                 "timestamp": datetime.now().isoformat()
             }
         }
+        logger.info(f"🔄 Context prepared: {context}")
         
         # Get AI response with trading command execution
-        logger.info(f"🎯 CHAT REQUEST: '{user_message}'")
+        logger.info(f"🎯 SENDING TO CONVERSATIONAL AI: '{user_message}'")
         result = conversational_ai.get_response(user_message, context=context)
-        logger.info(f"🎯 CHAT RESPONSE: {result}")
+        logger.info(f"🎯 RECEIVED FROM CONVERSATIONAL AI: {result}")
         
         # Return the full response with command execution info
-        return {
+        response = {
             "response": result.get("response", "I apologize, but I couldn't process your request."),
             "success": True,
             "command_executed": result.get("command_executed", False),
@@ -295,6 +311,8 @@ async def api_chat(message: dict):
             "model": result.get("model", "conversational_ai"),
             "timestamp": result.get("timestamp", datetime.now().isoformat())
         }
+        logger.info(f"🎯 RETURNING TO CLIENT: {response}")
+        return response
         
     except Exception as e:
         logger.error(f"Chat API error: {e}")
