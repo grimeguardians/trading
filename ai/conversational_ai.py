@@ -274,14 +274,29 @@ You are connected to Alpaca paper trading. When users request trading actions, e
                 logger.info(f"🎯 COMMAND RESULT: {result}")
                 return result
             
-            # Close specific position
-            elif 'close position' in message_lower or 'close my position' in message_lower:
-                # Try to extract symbol from message
+            # Close specific position - more flexible pattern matching
+            elif 'close' in message_lower and ('position' in message_lower or any(symbol in message_lower for symbol in ['aapl', 'googl', 'msft', 'tsla', 'nvda', 'amzn', 'meta'])):
+                # Smart symbol extraction - prioritize known stock symbols
                 words = user_message.upper().split()
+                known_symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'SPY', 'QQQ', 'IWM']
+                excluded_words = ['CLOSE', 'POSITION', 'MY', 'THE', 'IN', 'ALPACA', 'CAN', 'YOU', 'PLEASE']
+                
+                # First try to find known symbols
                 for word in words:
-                    if len(word) <= 5 and word.isalpha() and word not in ['CLOSE', 'POSITION', 'MY']:
-                        logger.info(f"Executing: Close position {word}")
-                        return self._close_position(word)
+                    if word in known_symbols:
+                        logger.info(f"🎯 COMMAND DETECTED: Close position {word} (known symbol) from message: '{user_message}'")
+                        result = self._close_position(word)
+                        logger.info(f"🎯 COMMAND RESULT: {result}")
+                        return result
+                
+                # Then try to find any valid ticker-like words
+                for word in words:
+                    if len(word) >= 2 and len(word) <= 5 and word.isalpha() and word not in excluded_words:
+                        logger.info(f"🎯 COMMAND DETECTED: Close position {word} (detected ticker) from message: '{user_message}'")
+                        result = self._close_position(word)
+                        logger.info(f"🎯 COMMAND RESULT: {result}")
+                        return result
+                        
                 return {"error": "Could not identify which position to close. Please specify symbol (e.g., 'close AAPL position')"}
             
             # Cancel orders
